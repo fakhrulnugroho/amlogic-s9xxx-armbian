@@ -73,43 +73,43 @@ jobs:
           ln -sf /builder/build /home/runner/work/amlogic-s9xxx-armbian/amlogic-s9xxx-armbian/build
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      # - name: Compile Armbian [ ${{ inputs.set_release }} ]
-      #   id: compile
-      #   working-directory: /builder
-      #   if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
-      #   run: |
-      #     # Enable QEMU emulation for ARM architecture
-      #     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes 2>/dev/null || true
-      #     # Compile method and parameter description: https://docs.armbian.com/Developer-Guide_Build-Options
-      #     cd build/
-      #         ./compile.sh RELEASE=${{ inputs.set_release }} BOARD=aml-s9xx-box BRANCH=current BUILD_MINIMAL=no \
-      #                      BUILD_ONLY=default HOST=armbian BUILD_DESKTOP=no EXPERT=yes KERNEL_CONFIGURE=no \
-      #                      COMPRESS_OUTPUTIMAGE="sha" SHARE_LOG=yes
-      #     echo "status=success" >> ${GITHUB_OUTPUT}
+      - name: Compile Armbian [ bookworm ]
+        id: compile
+        working-directory: /builder
+        if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
+        run: |
+          # Enable QEMU emulation for ARM architecture
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes 2>/dev/null || true
+          # Compile method and parameter description: https://docs.armbian.com/Developer-Guide_Build-Options
+          cd build/
+              ./compile.sh RELEASE=bookworm BOARD=aml-s9xx-box BRANCH=current BUILD_MINIMAL=no \
+                           BUILD_ONLY=default HOST=armbian BUILD_DESKTOP=no EXPERT=yes KERNEL_CONFIGURE=no \
+                           COMPRESS_OUTPUTIMAGE="sha" SHARE_LOG=yes
+          echo "status=success" >> ${GITHUB_OUTPUT}
 
-      # - name: Organize files and clear space
-      #   id: clean
-      #   if: ${{ steps.compile.outputs.status == 'success' && !cancelled() }}
-      #   run: |
-      #     # Organize and keep essential files, delete unnecessary files
-      #     chmod +x ${ROOTFS_SCRIPT}
-      #     ${ROOTFS_SCRIPT} -v ${{ inputs.set_release }} -s true -c true -k true -p arm64
+      - name: Organize files and clear space
+        id: clean
+        if: ${{ steps.compile.outputs.status == 'success' && !cancelled() }}
+        run: |
+          # Organize and keep essential files, delete unnecessary files
+          chmod +x ${ROOTFS_SCRIPT}
+          ${ROOTFS_SCRIPT} -v bookworm -s true -c true -k true -p arm64
 
-      #     # Clean build directory except output folder
-      #     cd build/
-      #     rm -rf $(ls . | grep -v "^output$" | xargs) 2>/dev/null
+          # Clean build directory except output folder
+          cd build/
+          rm -rf $(ls . | grep -v "^output$" | xargs) 2>/dev/null
 
-      #     # Output cleaning result information
-      #     df -hT ${PWD}
-      #     echo "build_tag=Armbian_bookworm_arm64_server_$(date +"%Y.%m")" >> ${GITHUB_ENV}
-      #     echo "status=success" >> ${GITHUB_OUTPUT}
+          # Output cleaning result information
+          df -hT ${PWD}
+          echo "build_tag=Armbian_bookworm_arm64_server_$(date +"%Y.%m")" >> ${GITHUB_ENV}
+          echo "status=success" >> ${GITHUB_OUTPUT}
 
-      # - name: Upload Armbian image to Release
-      #   uses: ncipollo/release-action@main
-      #   if: ${{ steps.clean.outputs.status == 'success' && !cancelled() }}
-      #   with:
-      #     tag: ${{ env.build_tag }}
-      #     artifacts: build/output/images/*
-      #     allowUpdates: true
-      #     makeLatest: true
-      #     token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Armbian image to Release
+        uses: ncipollo/release-action@main
+        if: ${{ steps.clean.outputs.status == 'success' && !cancelled() }}
+        with:
+          tag: ${{ env.build_tag }}
+          artifacts: build/output/images/*
+          allowUpdates: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
